@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Мой трекер веса</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+body{
+  font-family: Arial;
+  padding:20px;
+  background:#f5f5f5;
+}
+h2{margin-top:30px;}
+input,button{
+  padding:10px;
+  margin:5px 0;
+  width:100%;
+  border-radius:8px;
+  border:1px solid #ccc;
+}
+button{
+  background:#4CAF50;
+  color:white;
+  border:none;
+}
+.card{
+  background:white;
+  padding:10px;
+  margin-top:10px;
+  border-radius:10px;
+}
+canvas{
+  background:white;
+  border-radius:10px;
+  padding:10px;
+}
+</style>
+</head>
+<body>
+
+<h1>📊 Трекер веса</h1>
+
+<input id="weight" placeholder="Вес (кг)" type="number">
+<input id="mealTime" type="time">
+<input id="note" placeholder="Что ела">
+<button onclick="save()">Сохранить</button>
+
+<h2>График веса</h2>
+<canvas id="chart"></canvas>
+
+<h2>История</h2>
+<div id="list"></div>
+
+<script>
+let data = JSON.parse(localStorage.getItem("weightData") || "[]");
+
+function save(){
+  let entry = {
+    date: new Date().toLocaleDateString(),
+    weight: document.getElementById("weight").value,
+    time: document.getElementById("mealTime").value,
+    note: document.getElementById("note").value
+  };
+  if(!entry.weight) return;
+  data.push(entry);
+  localStorage.setItem("weightData", JSON.stringify(data));
+  render();
+}
+
+function render(){
+  let list = document.getElementById("list");
+  list.innerHTML="";
+  data.forEach(d=>{
+    list.innerHTML += `
+      <div class="card">
+        <b>${d.date}</b><br>
+        Вес: ${d.weight} кг<br>
+        ${d.time ? "Время: "+d.time+"<br>" : ""}
+        ${d.note}
+      </div>
+    `;
+  });
+  drawChart();
+}
+
+function drawChart(){
+  let ctx = document.getElementById("chart").getContext("2d");
+  let labels = data.map(d=>d.date);
+  let weights = data.map(d=>d.weight);
+
+  new Chart(ctx,{
+    type:"line",
+    data:{
+      labels:labels,
+      datasets:[{
+        label:"Вес",
+        data:weights,
+        borderWidth:2
+      }]
+    }
+  });
+}
+
+render();
+</script>
+
+</body>
+</html>
