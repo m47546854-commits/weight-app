@@ -2,104 +2,207 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Мой трекер веса</title>
+<title>Weight Tracker</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <style>
 body{
-  font-family: Arial;
-  padding:20px;
-  background:#f5f5f5;
-}
-h2{margin-top:30px;}
-input,button{
-  padding:10px;
-  margin:5px 0;
-  width:100%;
-  border-radius:8px;
-  border:1px solid #ccc;
-}
-button{
-  background:#4CAF50;
+  margin:0;
+  font-family:Arial;
+  background:#0f1115;
   color:white;
-  border:none;
 }
+
+.container{
+  padding:20px;
+  max-width:500px;
+  margin:auto;
+}
+
+h1{
+  text-align:center;
+  color:#4da3ff;
+}
+
 .card{
-  background:white;
-  padding:10px;
+  background:#171a21;
+  padding:15px;
+  border-radius:15px;
+  margin-top:15px;
+}
+
+input{
+  width:100%;
+  padding:12px;
   margin-top:10px;
   border-radius:10px;
+  border:none;
+  background:#0f1115;
+  color:white;
 }
+
+button{
+  width:100%;
+  padding:12px;
+  margin-top:12px;
+  border:none;
+  border-radius:12px;
+  font-weight:bold;
+  background:#2f81f7;
+  color:white;
+}
+
+.delete{
+  background:#ff4d4d;
+}
+
 canvas{
-  background:white;
-  border-radius:10px;
+  margin-top:15px;
+  background:#171a21;
   padding:10px;
+  border-radius:15px;
 }
 </style>
 </head>
+
 <body>
+<div class="container">
 
-<h1>📊 Трекер веса</h1>
+<h1>Трекер</h1>
 
-<input id="weight" placeholder="Вес (кг)" type="number">
+<div class="card">
+<h3>Вес</h3>
+<input id="weightInput" type="number" placeholder="Введите вес">
+<button onclick="addWeight()">Сохранить вес</button>
+</div>
+
+<div class="card">
+<h3>Приём пищи</h3>
 <input id="mealTime" type="time">
-<input id="note" placeholder="Что ела">
-<button onclick="save()">Сохранить</button>
+<input id="mealNote" placeholder="Что ела">
+<button onclick="addMeal()">Сохранить еду</button>
+</div>
 
-<h2>График веса</h2>
+<div class="card">
+<h3>График веса</h3>
 <canvas id="chart"></canvas>
+</div>
 
-<h2>История</h2>
-<div id="list"></div>
+<div class="card">
+<h3>История</h3>
+<div id="history"></div>
+</div>
+
+</div>
 
 <script>
-let data = JSON.parse(localStorage.getItem("weightData") || "[]");
+let weights = JSON.parse(localStorage.getItem("weights")||"[]");
+let meals = JSON.parse(localStorage.getItem("meals")||"[]");
 
 function save(){
-  let entry = {
-    date: new Date().toLocaleDateString(),
-    weight: document.getElementById("weight").value,
-    time: document.getElementById("mealTime").value,
-    note: document.getElementById("note").value
-  };
-  if(!entry.weight) return;
-  data.push(entry);
-  localStorage.setItem("weightData", JSON.stringify(data));
-  render();
+localStorage.setItem("weights",JSON.stringify(weights));
+localStorage.setItem("meals",JSON.stringify(meals));
+}
+
+function addWeight(){
+let val=document.getElementById("weightInput").value;
+if(!val) return;
+
+weights.push({
+date:new Date().toLocaleDateString(),
+weight:val
+});
+
+document.getElementById("weightInput").value="";
+save();
+render();
+}
+
+function addMeal(){
+let time=document.getElementById("mealTime").value;
+let note=document.getElementById("mealNote").value;
+if(!note) return;
+
+meals.push({
+date:new Date().toLocaleDateString(),
+time:time,
+note:note
+});
+
+document.getElementById("mealNote").value="";
+save();
+render();
+}
+
+function deleteWeight(i){
+weights.splice(i,1);
+save();
+render();
+}
+
+function deleteMeal(i){
+meals.splice(i,1);
+save();
+render();
 }
 
 function render(){
-  let list = document.getElementById("list");
-  list.innerHTML="";
-  data.forEach(d=>{
-    list.innerHTML += `
-      <div class="card">
-        <b>${d.date}</b><br>
-        Вес: ${d.weight} кг<br>
-        ${d.time ? "Время: "+d.time+"<br>" : ""}
-        ${d.note}
-      </div>
-    `;
-  });
-  drawChart();
+
+let h=document.getElementById("history");
+h.innerHTML="";
+
+weights.forEach((w,i)=>{
+h.innerHTML+=`
+<div class="card">
+<b>${w.date}</b><br>
+Вес: ${w.weight} кг
+<button class="delete" onclick="deleteWeight(${i})">Удалить</button>
+</div>`;
+});
+
+meals.forEach((m,i)=>{
+h.innerHTML+=`
+<div class="card">
+<b>${m.date}</b><br>
+${m.time ? m.time+"<br>" : ""}
+${m.note}
+<button class="delete" onclick="deleteMeal(${i})">Удалить</button>
+</div>`;
+});
+
+drawChart();
 }
 
 function drawChart(){
-  let ctx = document.getElementById("chart").getContext("2d");
-  let labels = data.map(d=>d.date);
-  let weights = data.map(d=>d.weight);
+let ctx=document.getElementById("chart").getContext("2d");
 
-  new Chart(ctx,{
-    type:"line",
-    data:{
-      labels:labels,
-      datasets:[{
-        label:"Вес",
-        data:weights,
-        borderWidth:2
-      }]
-    }
-  });
+let labels=weights.map(w=>w.date);
+let data=weights.map(w=>w.weight);
+
+if(window.chart) window.chart.destroy();
+
+window.chart=new Chart(ctx,{
+type:"line",
+data:{
+labels:labels,
+datasets:[{
+label:"Вес",
+data:data,
+borderColor:"#4da3ff",
+borderWidth:3,
+tension:0.3
+}]
+},
+options:{
+plugins:{legend:{display:false}},
+scales:{
+x:{ticks:{color:"white"}},
+y:{ticks:{color:"white"}}
+}
+}
+});
 }
 
 render();
